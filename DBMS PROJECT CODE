@@ -1,0 +1,1029 @@
+my sql code :
+-- =========================================================
+-- COLLEGE MANAGEMENT SYSTEM
+-- MYSQL 8+ VERSION
+-- =========================================================
+
+CREATE DATABASE IF NOT EXISTS college_management_system;
+USE college_management_system;
+
+DROP TABLE IF EXISTS FeePaymentAudit;
+DROP TABLE IF EXISTS FeePayment;
+DROP TABLE IF EXISTS Marks;
+DROP TABLE IF EXISTS Exam;
+DROP TABLE IF EXISTS Attendance;
+DROP TABLE IF EXISTS Enrollment;
+DROP TABLE IF EXISTS Student;
+DROP TABLE IF EXISTS Course;
+DROP TABLE IF EXISTS Faculty;
+DROP TABLE IF EXISTS Department;
+
+-- Department
+CREATE TABLE Department (
+dept_id INT PRIMARY KEY AUTO_INCREMENT,
+dept_name VARCHAR(80) NOT NULL UNIQUE,
+hod_name VARCHAR(80) NOT NULL,
+established_year INT NOT NULL
+CHECK (established_year BETWEEN 1900 AND 2100)
+);
+
+-- Faculty
+CREATE TABLE Faculty (
+faculty_id INT PRIMARY KEY AUTO_INCREMENT,
+name VARCHAR(80) NOT NULL,
+dept_id INT NOT NULL,
+designation VARCHAR(40) NOT NULL DEFAULT 'Assistant Professor',
+email VARCHAR(120) NOT NULL UNIQUE,
+join_date DATE NOT NULL,
+FOREIGN KEY (dept_id)
+REFERENCES Department(dept_id)
+);
+
+-- Course
+CREATE TABLE Course (
+course_id INT PRIMARY KEY AUTO_INCREMENT,
+course_name VARCHAR(100) NOT NULL UNIQUE,
+credits INT NOT NULL CHECK (credits BETWEEN 1 AND 8),
+dept_id INT NOT NULL,
+faculty_id INT,
+FOREIGN KEY (dept_id)
+REFERENCES Department(dept_id),
+FOREIGN KEY (faculty_id)
+REFERENCES Faculty(faculty_id)
+ON DELETE SET NULL
+);
+
+-- Student
+CREATE TABLE Student (
+student_id INT PRIMARY KEY AUTO_INCREMENT,
+name VARCHAR(80) NOT NULL,
+dob DATE NOT NULL,
+gender CHAR(1) NOT NULL
+CHECK (gender IN ('M','F','O')),
+dept_id INT NOT NULL,
+email VARCHAR(120) NOT NULL UNIQUE,
+admission_year INT NOT NULL
+CHECK (admission_year BETWEEN 1990 AND 2100),
+FOREIGN KEY (dept_id)
+REFERENCES Department(dept_id)
+);
+
+-- Enrollment
+CREATE TABLE Enrollment (
+enroll_id INT PRIMARY KEY AUTO_INCREMENT,
+student_id INT NOT NULL,
+course_id INT NOT NULL,
+enroll_date DATE NOT NULL DEFAULT (CURRENT_DATE),
+UNIQUE (student_id, course_id),
+FOREIGN KEY (student_id)
+REFERENCES Student(student_id)
+ON DELETE CASCADE,
+FOREIGN KEY (course_id)
+REFERENCES Course(course_id)
+ON DELETE CASCADE
+);
+
+-- Attendance
+CREATE TABLE Attendance (
+att_id INT PRIMARY KEY AUTO_INCREMENT,
+student_id INT NOT NULL,
+course_id INT NOT NULL,
+date DATE NOT NULL,
+status VARCHAR(10) NOT NULL
+CHECK (status IN ('Present','Absent','Leave')),
+marked_by INT NOT NULL,
+FOREIGN KEY (student_id)
+REFERENCES Student(student_id),
+FOREIGN KEY (course_id)
+REFERENCES Course(course_id),
+FOREIGN KEY (marked_by)
+REFERENCES Faculty(faculty_id)
+);
+
+-- Exam
+CREATE TABLE Exam (
+exam_id INT PRIMARY KEY AUTO_INCREMENT,
+course_id INT NOT NULL,
+exam_date DATE NOT NULL,
+max_marks INT NOT NULL
+CHECK (max_marks BETWEEN 10 AND 200),
+FOREIGN KEY (course_id)
+REFERENCES Course(course_id)
+ON DELETE CASCADE
+);
+
+-- Marks
+CREATE TABLE Marks (
+mark_id INT PRIMARY KEY AUTO_INCREMENT,
+student_id INT NOT NULL,
+exam_id INT NOT NULL,
+marks_obtained INT NOT NULL
+CHECK (marks_obtained BETWEEN 0 AND 200),
+grade CHAR(2),
+published_on DATE,
+FOREIGN KEY (student_id)
+REFERENCES Student(student_id)
+ON DELETE CASCADE,
+FOREIGN KEY (exam_id)
+REFERENCES Exam(exam_id)
+ON DELETE CASCADE
+);
+
+-- Fee Payment
+CREATE TABLE FeePayment (
+payment_id INT PRIMARY KEY AUTO_INCREMENT,
+student_id INT NOT NULL,
+amount DECIMAL(10,2) NOT NULL CHECK (amount > 0),
+payment_date DATE NOT NULL DEFAULT (CURRENT_DATE),
+mode VARCHAR(20) NOT NULL
+CHECK (mode IN ('Cash','Card','Online','Cheque')),
+status VARCHAR(15) NOT NULL
+CHECK (status IN ('Paid','Pending','Partial')),
+FOREIGN KEY (student_id)
+REFERENCES Student(student_id)
+ON DELETE CASCADE
+);
+
+-- Audit Table
+CREATE TABLE FeePaymentAudit (
+audit_id INT PRIMARY KEY AUTO_INCREMENT,
+payment_id INT NOT NULL,
+student_id INT NOT NULL,
+amount DECIMAL(10,2) NOT NULL,
+action_time DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+action_type VARCHAR(20) NOT NULL
+);
+
+-- SAMPLE DATA
+
+INSERT INTO Department
+(dept_name, hod_name, established_year)
+VALUES
+('Computer Science & Engineering', 'Dr. A. Reddy', 1998),
+('Electronics & Communication', 'Dr. S. Bose', 2001),
+('Mechanical Engineering', 'Dr. M. Nair', 1995);
+
+INSERT INTO Faculty
+(name, dept_id, designation, email, join_date)
+VALUES
+('Prof. K. Mehta', 1, 'Professor', 'mehta@college.edu', '2010-06-15'),
+('Prof. R. Banerjee', 1, 'Associate Professor', 'banerjee@college.edu', '2012-08-01'),
+('Prof. P. Das', 2, 'Assistant Professor', 'das@college.edu', '2015-07-20'),
+('Prof. L. Cherian', 3, 'Professor', 'cherian@college.edu', '2008-01-10');
+
+INSERT INTO Course
+(course_name, credits, dept_id, faculty_id)
+VALUES
+('Database Management Systems', 4, 1, 1),
+('Operating Systems', 4, 1, 1),
+('Computer Networks', 3, 1, 2),
+('Signals and Systems', 4, 2, 3),
+('Thermodynamics', 3, 3, 4);
+
+INSERT INTO Student
+(name, dob, gender, dept_id, email, admission_year)
+VALUES
+('Aarav Sharma', '2003-04-12', 'M', 1, 'aarav@college.edu', 2021),
+('Diya Iyer', '2003-09-23', 'F', 2, 'diya@college.edu', 2021),
+('Kabir Khan', '2002-12-05', 'M', 1, 'kabir@college.edu', 2020),
+('Meera Nair', '2003-02-19', 'F', 3, 'meera@college.edu', 2021),
+('Rahul Verma', '2003-07-30', 'M', 1, 'rahul@college.edu', 2021),
+('Sara Pinto', '2003-11-11', 'F', 2, 'sara@college.edu', 2021);
+
+INSERT INTO Enrollment
+(student_id, course_id, enroll_date)
+VALUES
+(1,1,'2021-08-01'),
+(1,2,'2021-08-01'),
+(1,3,'2021-08-01'),
+(2,4,'2021-08-01'),
+(3,1,'2020-08-01'),
+(3,3,'2020-08-01'),
+(5,1,'2021-08-01'),
+(5,2,'2021-08-01');
+
+INSERT INTO Attendance
+(student_id, course_id, date, status, marked_by)
+VALUES
+(1,1,'2024-09-01','Present',1),
+(1,1,'2024-09-02','Present',1),
+(1,1,'2024-09-03','Absent',1),
+(3,1,'2024-09-01','Present',1),
+(3,1,'2024-09-02','Absent',1),
+(3,3,'2024-09-01','Present',2),
+(3,3,'2024-09-02','Present',2),
+(2,4,'2024-09-01','Present',3),
+(5,1,'2024-09-01','Present',1),
+(5,1,'2024-09-02','Leave',1);
+
+INSERT INTO Exam
+(course_id, exam_date, max_marks)
+VALUES
+(1,'2024-10-15',100),
+(3,'2024-10-18',100);
+
+INSERT INTO Marks
+(student_id, exam_id, marks_obtained, grade)
+VALUES
+(1,1,85,'A'),
+(3,1,80,'A'),
+(5,1,78,'B+'),
+(1,2,82,'A'),
+(3,2,75,'B+'),
+(2,2,90,'A+');
+
+INSERT INTO FeePayment
+(student_id, amount, payment_date, mode, status)
+VALUES
+(1,25000.00,'2024-08-10','Online','Paid'),
+(2,25000.00,'2024-08-12','Card','Paid'),
+(3,15000.00,'2024-08-15','Cash','Partial'),
+(5,5000.00,'2024-08-20','Online','Pending');
+
+-- STORED PROCEDURE 1
+
+DELIMITER //
+
+CREATE PROCEDURE sp_RegisterStudent(
+IN p_name VARCHAR(80),
+IN p_dob DATE,
+IN p_gender CHAR(1),
+IN p_dept_id INT,
+IN p_email VARCHAR(120),
+IN p_admission_year INT
+)
+BEGIN
+DECLARE v_new_student_id INT;
+
+INSERT INTO Student
+(name, dob, gender, dept_id, email, admission_year)
+VALUES
+(p_name, p_dob, p_gender, p_dept_id, p_email, p_admission_year);
+
+SET v_new_student_id = LAST_INSERT_ID();
+
+INSERT INTO Enrollment
+(student_id, course_id, enroll_date)
+SELECT v_new_student_id, course_id, CURRENT_DATE
+FROM Course
+WHERE dept_id = p_dept_id;
+END //
+
+DELIMITER ;
+
+-- STORED PROCEDURE 2
+
+DELIMITER //
+
+CREATE PROCEDURE sp_MarkAttendance(
+IN p_student_id INT,
+IN p_course_id INT,
+IN p_date DATE,
+IN p_status VARCHAR(10),
+IN p_marked_by INT
+)
+BEGIN
+DECLARE v_pct DECIMAL(5,2);
+
+INSERT INTO Attendance
+(student_id, course_id, date, status, marked_by)
+VALUES
+(p_student_id, p_course_id, p_date, p_status, p_marked_by);
+
+SELECT ROUND(
+    100.0 * SUM(
+        CASE WHEN status = 'Present' THEN 1 ELSE 0 END
+    ) / COUNT(*), 2
+)
+INTO v_pct
+FROM Attendance
+WHERE student_id = p_student_id
+  AND course_id = p_course_id;
+
+IF v_pct < 75 THEN
+    SELECT CONCAT(
+        'WARNING: Student ', p_student_id,
+        ' attendance in course ', p_course_id,
+        ' has fallen to ', v_pct, '%'
+    ) AS warning;
+END IF;
+END //
+
+DELIMITER ;
+
+-- TRIGGER 1
+
+DELIMITER //
+
+CREATE TRIGGER trg_FeePaymentAudit
+AFTER INSERT ON FeePayment
+FOR EACH ROW
+BEGIN
+INSERT INTO FeePaymentAudit
+(payment_id, student_id, amount, action_type)
+VALUES
+(NEW.payment_id, NEW.student_id, NEW.amount, 'INSERT');
+END //
+
+DELIMITER ;
+
+-- TRIGGER 2
+
+DELIMITER //
+
+CREATE TRIGGER trg_PreventMarkDelete
+BEFORE DELETE ON Marks
+FOR EACH ROW
+BEGIN
+IF OLD.published_on IS NOT NULL THEN
+SIGNAL SQLSTATE '45000'
+SET MESSAGE_TEXT =
+'Cannot delete marks after results have been published.';
+END IF;
+END //
+
+DELIMITER ;
+
+-- REPORTING QUERIES
+
+SELECT
+s.student_id,
+s.name AS student_name,
+d.dept_name AS department
+FROM Student s
+JOIN Department d
+ON s.dept_id = d.dept_id
+ORDER BY s.name;
+
+SELECT
+c.course_name,
+COUNT(e.student_id) AS enrolled_students
+FROM Course c
+LEFT JOIN Enrollment e
+ON c.course_id = e.course_id
+GROUP BY c.course_id, c.course_name
+ORDER BY enrolled_students DESC;
+
+SELECT
+s.name AS student_name,
+c.course_name,
+COUNT(a.att_id) AS total_classes,
+SUM(CASE WHEN a.status='Present' THEN 1 ELSE 0 END) AS attended,
+ROUND(
+100.0 * SUM(
+CASE WHEN a.status='Present' THEN 1 ELSE 0 END
+) / COUNT(a.att_id), 2
+) AS attendance_pct
+FROM Student s
+JOIN Enrollment e
+ON s.student_id = e.student_id
+JOIN Course c
+ON e.course_id = c.course_id
+JOIN Attendance a
+ON a.student_id = s.student_id
+AND a.course_id = c.course_id
+GROUP BY
+s.student_id,
+s.name,
+c.course_id,
+c.course_name
+ORDER BY s.name;
+
+SELECT
+s.student_id,
+s.name,
+s.email,
+SUM(f.amount) AS pending_or_partial_amount
+FROM Student s
+JOIN FeePayment f
+ON s.student_id = f.student_id
+WHERE f.status IN ('Pending','Partial')
+GROUP BY s.student_id, s.name, s.email;
+
+SELECT
+exam_id,
+student_id,
+marks_obtained,
+rank_in_exam
+FROM (
+SELECT
+m.exam_id,
+m.student_id,
+m.marks_obtained,
+RANK() OVER (
+PARTITION BY m.exam_id
+ORDER BY m.marks_obtained DESC
+) AS rank_in_exam
+FROM Marks m
+) ranked
+WHERE rank_in_exam <= 3
+ORDER BY exam_id, rank_in_exam;
+
+SELECT
+f.faculty_id,
+f.name AS faculty_name,
+f.designation,
+COUNT(c.course_id) AS courses_assigned,
+COALESCE(SUM(c.credits),0) AS total_credits
+FROM Faculty f
+LEFT JOIN Course c
+ON c.faculty_id = f.faculty_id
+GROUP BY f.faculty_id, f.name, f.designation
+ORDER BY total_credits DESC;
+
+SELECT
+s.student_id,
+s.name,
+s.email,
+ROUND(
+100.0 * SUM(
+CASE WHEN a.status='Present' THEN 1 ELSE 0 END
+) / COUNT(a.att_id), 2
+) AS attendance_pct
+FROM Student s
+JOIN Attendance a
+ON s.student_id = a.student_id
+GROUP BY s.student_id, s.name, s.email
+HAVING attendance_pct < 75
+ORDER BY attendance_pct;
+
+SELECT
+m.student_id,
+s.name,
+m.exam_id,
+m.marks_obtained
+FROM Marks m
+JOIN Student s
+ON m.student_id = s.student_id
+WHERE m.marks_obtained > (
+SELECT AVG(marks_obtained)
+FROM Marks
+WHERE exam_id = m.exam_id
+)
+ORDER BY m.exam_id, m.marks_obtained DESC;
+
+SQL Server Online Version:
+-- =========================================================
+-- COLLEGE MANAGEMENT SYSTEM
+-- SQL SERVER VERSION
+-- =========================================================
+
+IF DB_ID('college_management_system') IS NULL
+CREATE DATABASE college_management_system;
+GO
+
+USE college_management_system;
+GO
+
+-- Remove old tables
+DROP TABLE IF EXISTS FeePaymentAudit;
+DROP TABLE IF EXISTS FeePayment;
+DROP TABLE IF EXISTS Marks;
+DROP TABLE IF EXISTS Exam;
+DROP TABLE IF EXISTS Attendance;
+DROP TABLE IF EXISTS Enrollment;
+DROP TABLE IF EXISTS Student;
+DROP TABLE IF EXISTS Course;
+DROP TABLE IF EXISTS Faculty;
+DROP TABLE IF EXISTS Department;
+GO
+
+-- Department
+CREATE TABLE Department (
+dept_id INT PRIMARY KEY IDENTITY(1,1),
+dept_name VARCHAR(80) NOT NULL UNIQUE,
+hod_name VARCHAR(80) NOT NULL,
+established_year INT NOT NULL
+CHECK (established_year BETWEEN 1900 AND 2100)
+);
+GO
+
+-- Faculty
+CREATE TABLE Faculty (
+faculty_id INT PRIMARY KEY IDENTITY(1,1),
+name VARCHAR(80) NOT NULL,
+dept_id INT NOT NULL,
+designation VARCHAR(40) NOT NULL
+DEFAULT 'Assistant Professor',
+email VARCHAR(120) NOT NULL UNIQUE,
+join_date DATE NOT NULL,
+CONSTRAINT fk_faculty_dept
+FOREIGN KEY (dept_id)
+REFERENCES Department(dept_id)
+);
+GO
+
+-- Course
+CREATE TABLE Course (
+course_id INT PRIMARY KEY IDENTITY(1,1),
+course_name VARCHAR(100) NOT NULL UNIQUE,
+credits INT NOT NULL
+CHECK (credits BETWEEN 1 AND 8),
+dept_id INT NOT NULL,
+faculty_id INT,
+CONSTRAINT fk_course_dept
+FOREIGN KEY (dept_id)
+REFERENCES Department(dept_id),
+CONSTRAINT fk_course_faculty
+FOREIGN KEY (faculty_id)
+REFERENCES Faculty(faculty_id)
+ON DELETE SET NULL
+);
+GO
+
+-- Student
+CREATE TABLE Student (
+student_id INT PRIMARY KEY IDENTITY(1,1),
+name VARCHAR(80) NOT NULL,
+dob DATE NOT NULL,
+gender CHAR(1) NOT NULL
+CHECK (gender IN ('M','F','O')),
+dept_id INT NOT NULL,
+email VARCHAR(120) NOT NULL UNIQUE,
+admission_year INT NOT NULL
+CHECK (admission_year BETWEEN 1990 AND 2100),
+CONSTRAINT fk_student_dept
+FOREIGN KEY (dept_id)
+REFERENCES Department(dept_id)
+);
+GO
+
+-- Enrollment
+CREATE TABLE Enrollment (
+enroll_id INT PRIMARY KEY IDENTITY(1,1),
+student_id INT NOT NULL,
+course_id INT NOT NULL,
+enroll_date DATE NOT NULL
+DEFAULT CAST(GETDATE() AS DATE),
+CONSTRAINT uk_student_course
+UNIQUE (student_id, course_id),
+CONSTRAINT fk_enr_student
+FOREIGN KEY (student_id)
+REFERENCES Student(student_id)
+ON DELETE CASCADE,
+CONSTRAINT fk_enr_course
+FOREIGN KEY (course_id)
+REFERENCES Course(course_id)
+ON DELETE CASCADE
+);
+GO
+
+-- Attendance
+CREATE TABLE Attendance (
+att_id INT PRIMARY KEY IDENTITY(1,1),
+student_id INT NOT NULL,
+course_id INT NOT NULL,
+date DATE NOT NULL,
+status VARCHAR(10) NOT NULL
+CHECK (status IN ('Present','Absent','Leave')),
+marked_by INT NOT NULL,
+CONSTRAINT fk_att_student
+FOREIGN KEY (student_id)
+REFERENCES Student(student_id),
+CONSTRAINT fk_att_course
+FOREIGN KEY (course_id)
+REFERENCES Course(course_id),
+CONSTRAINT fk_att_marked
+FOREIGN KEY (marked_by)
+REFERENCES Faculty(faculty_id)
+);
+GO
+
+-- Exam
+CREATE TABLE Exam (
+exam_id INT PRIMARY KEY IDENTITY(1,1),
+course_id INT NOT NULL,
+exam_date DATE NOT NULL,
+max_marks INT NOT NULL
+CHECK (max_marks BETWEEN 10 AND 200),
+CONSTRAINT fk_exam_course
+FOREIGN KEY (course_id)
+REFERENCES Course(course_id)
+ON DELETE CASCADE
+);
+GO
+
+-- Marks
+CREATE TABLE Marks (
+mark_id INT PRIMARY KEY IDENTITY(1,1),
+student_id INT NOT NULL,
+exam_id INT NOT NULL,
+marks_obtained INT NOT NULL
+CHECK (marks_obtained BETWEEN 0 AND 200),
+grade CHAR(2),
+published_on DATE,
+CONSTRAINT fk_marks_student
+FOREIGN KEY (student_id)
+REFERENCES Student(student_id)
+ON DELETE CASCADE,
+CONSTRAINT fk_marks_exam
+FOREIGN KEY (exam_id)
+REFERENCES Exam(exam_id)
+ON DELETE CASCADE
+);
+GO
+
+-- Fee Payment
+CREATE TABLE FeePayment (
+payment_id INT PRIMARY KEY IDENTITY(1,1),
+student_id INT NOT NULL,
+amount DECIMAL(10,2) NOT NULL
+CHECK (amount > 0),
+payment_date DATE NOT NULL
+DEFAULT CAST(GETDATE() AS DATE),
+mode VARCHAR(20) NOT NULL
+CHECK (mode IN ('Cash','Card','Online','Cheque')),
+status VARCHAR(15) NOT NULL
+CHECK (status IN ('Paid','Pending','Partial')),
+CONSTRAINT fk_fee_student
+FOREIGN KEY (student_id)
+REFERENCES Student(student_id)
+ON DELETE CASCADE
+);
+GO
+
+-- Audit Table
+CREATE TABLE FeePaymentAudit (
+audit_id INT PRIMARY KEY IDENTITY(1,1),
+payment_id INT NOT NULL,
+student_id INT NOT NULL,
+amount DECIMAL(10,2) NOT NULL,
+action_time DATETIME NOT NULL DEFAULT GETDATE(),
+action_type VARCHAR(20) NOT NULL
+);
+GO
+
+-- SAMPLE DATA
+
+INSERT INTO Department
+(dept_name, hod_name, established_year)
+VALUES
+('Computer Science & Engineering','Dr. A. Reddy',1998),
+('Electronics & Communication','Dr. S. Bose',2001),
+('Mechanical Engineering','Dr. M. Nair',1995);
+GO
+
+INSERT INTO Faculty
+(name, dept_id, designation, email, join_date)
+VALUES
+('Prof. K. Mehta',1,'Professor','mehta@college.edu','2010-06-15'),
+('Prof. R. Banerjee',1,'Associate Professor','banerjee@college.edu','2012-08-01'),
+('Prof. P. Das',2,'Assistant Professor','das@college.edu','2015-07-20'),
+('Prof. L. Cherian',3,'Professor','cherian@college.edu','2008-01-10');
+GO
+
+INSERT INTO Course
+(course_name, credits, dept_id, faculty_id)
+VALUES
+('Database Management Systems',4,1,1),
+('Operating Systems',4,1,1),
+('Computer Networks',3,1,2),
+('Signals and Systems',4,2,3),
+('Thermodynamics',3,3,4);
+GO
+
+INSERT INTO Student
+(name, dob, gender, dept_id, email, admission_year)
+VALUES
+('Aarav Sharma','2003-04-12','M',1,'aarav@college.edu',2021),
+('Diya Iyer','2003-09-23','F',2,'diya@college.edu',2021),
+('Kabir Khan','2002-12-05','M',1,'kabir@college.edu',2020),
+('Meera Nair','2003-02-19','F',3,'meera@college.edu',2021),
+('Rahul Verma','2003-07-30','M',1,'rahul@college.edu',2021),
+('Sara Pinto','2003-11-11','F',2,'sara@college.edu',2021);
+GO
+
+INSERT INTO Enrollment
+(student_id, course_id, enroll_date)
+VALUES
+(1,1,'2021-08-01'),
+(1,2,'2021-08-01'),
+(1,3,'2021-08-01'),
+(2,4,'2021-08-01'),
+(3,1,'2020-08-01'),
+(3,3,'2020-08-01'),
+(5,1,'2021-08-01'),
+(5,2,'2021-08-01');
+GO
+
+INSERT INTO Attendance
+(student_id, course_id, date, status, marked_by)
+VALUES
+(1,1,'2024-09-01','Present',1),
+(1,1,'2024-09-02','Present',1),
+(1,1,'2024-09-03','Absent',1),
+(3,1,'2024-09-01','Present',1),
+(3,1,'2024-09-02','Absent',1),
+(3,3,'2024-09-01','Present',2),
+(3,3,'2024-09-02','Present',2),
+(2,4,'2024-09-01','Present',3),
+(5,1,'2024-09-01','Present',1),
+(5,1,'2024-09-02','Leave',1);
+GO
+
+INSERT INTO Exam
+(course_id, exam_date, max_marks)
+VALUES
+(1,'2024-10-15',100),
+(3,'2024-10-18',100);
+GO
+
+INSERT INTO Marks
+(student_id, exam_id, marks_obtained, grade)
+VALUES
+(1,1,85,'A'),
+(3,1,80,'A'),
+(5,1,78,'B+'),
+(1,2,82,'A'),
+(3,2,75,'B+'),
+(2,2,90,'A+');
+GO
+
+INSERT INTO FeePayment
+(student_id, amount, payment_date, mode, status)
+VALUES
+(1,25000.00,'2024-08-10','Online','Paid'),
+(2,25000.00,'2024-08-12','Card','Paid'),
+(3,15000.00,'2024-08-15','Cash','Partial'),
+(5,5000.00,'2024-08-20','Online','Pending');
+GO
+
+-- STORED PROCEDURE 1
+
+CREATE OR ALTER PROCEDURE sp_RegisterStudent
+@p_name VARCHAR(80),
+@p_dob DATE,
+@p_gender CHAR(1),
+@p_dept_id INT,
+@p_email VARCHAR(120),
+@p_admission_year INT
+AS
+BEGIN
+SET NOCOUNT ON;
+
+DECLARE @v_new_student_id INT;
+
+INSERT INTO Student
+(name, dob, gender, dept_id, email, admission_year)
+VALUES
+(@p_name, @p_dob, @p_gender, @p_dept_id,
+ @p_email, @p_admission_year);
+
+SET @v_new_student_id = SCOPE_IDENTITY();
+
+INSERT INTO Enrollment
+(student_id, course_id, enroll_date)
+SELECT
+    @v_new_student_id,
+    course_id,
+    CAST(GETDATE() AS DATE)
+FROM Course
+WHERE dept_id = @p_dept_id;
+END;
+GO
+
+-- STORED PROCEDURE 2
+
+CREATE OR ALTER PROCEDURE sp_MarkAttendance
+@p_student_id INT,
+@p_course_id INT,
+@p_date DATE,
+@p_status VARCHAR(10),
+@p_marked_by INT
+AS
+BEGIN
+SET NOCOUNT ON;
+
+DECLARE @v_pct DECIMAL(5,2);
+
+INSERT INTO Attendance
+(student_id, course_id, date, status, marked_by)
+VALUES
+(@p_student_id, @p_course_id, @p_date,
+ @p_status, @p_marked_by);
+
+SELECT @v_pct =
+    ROUND(
+        100.0 *
+        SUM(
+            CASE WHEN status = 'Present'
+            THEN 1 ELSE 0 END
+        ) / COUNT(*), 2
+    )
+FROM Attendance
+WHERE student_id = @p_student_id
+  AND course_id = @p_course_id;
+
+IF @v_pct < 75
+BEGIN
+    SELECT
+        CONCAT(
+            'WARNING: Student ',
+            @p_student_id,
+            ' attendance in course ',
+            @p_course_id,
+            ' has fallen to ',
+            @v_pct,
+            '%'
+        ) AS warning;
+END
+END;
+GO
+
+-- TRIGGER 1
+
+CREATE OR ALTER TRIGGER trg_FeePaymentAudit
+ON FeePayment
+AFTER INSERT
+AS
+BEGIN
+SET NOCOUNT ON;
+
+INSERT INTO FeePaymentAudit
+(payment_id, student_id, amount, action_type)
+SELECT
+    payment_id,
+    student_id,
+    amount,
+    'INSERT'
+FROM inserted;
+END;
+GO
+
+-- TRIGGER 2
+
+CREATE OR ALTER TRIGGER trg_PreventMarkDelete
+ON Marks
+INSTEAD OF DELETE
+AS
+BEGIN
+SET NOCOUNT ON;
+
+IF EXISTS (
+    SELECT 1
+    FROM deleted
+    WHERE published_on IS NOT NULL
+)
+BEGIN
+    THROW 50001,
+    'Cannot delete marks after results have been published.',
+    1;
+END;
+
+DELETE FROM Marks
+WHERE mark_id IN (
+    SELECT mark_id FROM deleted
+);
+END;
+GO
+
+-- REPORTING QUERIES
+
+-- Query 1
+SELECT
+s.student_id,
+s.name AS student_name,
+d.dept_name AS department
+FROM Student s
+JOIN Department d
+ON s.dept_id = d.dept_id
+ORDER BY s.name;
+GO
+
+-- Query 2
+SELECT
+c.course_name,
+COUNT(e.student_id) AS enrolled_students
+FROM Course c
+LEFT JOIN Enrollment e
+ON c.course_id = e.course_id
+GROUP BY c.course_id, c.course_name
+ORDER BY enrolled_students DESC;
+GO
+
+-- Query 3
+SELECT
+s.name AS student_name,
+c.course_name,
+COUNT(a.att_id) AS total_classes,
+SUM(
+CASE WHEN a.status='Present'
+THEN 1 ELSE 0 END
+) AS attended,
+ROUND(
+100.0 *
+SUM(
+CASE WHEN a.status='Present'
+THEN 1 ELSE 0 END
+) / COUNT(a.att_id), 2
+) AS attendance_pct
+FROM Student s
+JOIN Enrollment e
+ON s.student_id = e.student_id
+JOIN Course c
+ON e.course_id = c.course_id
+JOIN Attendance a
+ON a.student_id = s.student_id
+AND a.course_id = c.course_id
+GROUP BY
+s.student_id,
+s.name,
+c.course_id,
+c.course_name
+ORDER BY s.name;
+GO
+
+-- Query 4
+SELECT
+s.student_id,
+s.name,
+s.email,
+SUM(f.amount) AS pending_or_partial_amount
+FROM Student s
+JOIN FeePayment f
+ON s.student_id = f.student_id
+WHERE f.status IN ('Pending','Partial')
+GROUP BY s.student_id, s.name, s.email;
+GO
+
+-- Query 5
+SELECT
+exam_id,
+student_id,
+marks_obtained,
+rank_in_exam
+FROM (
+SELECT
+m.exam_id,
+m.student_id,
+m.marks_obtained,
+RANK() OVER (
+PARTITION BY m.exam_id
+ORDER BY m.marks_obtained DESC
+) AS rank_in_exam
+FROM Marks m
+) ranked
+WHERE rank_in_exam <= 3
+ORDER BY exam_id, rank_in_exam;
+GO
+
+-- Query 6
+SELECT
+f.faculty_id,
+f.name AS faculty_name,
+f.designation,
+COUNT(c.course_id) AS courses_assigned,
+COALESCE(SUM(c.credits),0) AS total_credits
+FROM Faculty f
+LEFT JOIN Course c
+ON c.faculty_id = f.faculty_id
+GROUP BY
+f.faculty_id,
+f.name,
+f.designation
+ORDER BY total_credits DESC;
+GO
+
+-- Query 7
+SELECT
+s.student_id,
+s.name,
+s.email,
+ROUND(
+100.0 *
+SUM(
+CASE WHEN a.status='Present'
+THEN 1 ELSE 0 END
+) / COUNT(a.att_id), 2
+) AS attendance_pct
+FROM Student s
+JOIN Attendance a
+ON s.student_id = a.student_id
+GROUP BY s.student_id, s.name, s.email
+HAVING
+ROUND(
+100.0 *
+SUM(
+CASE WHEN a.status='Present'
+THEN 1 ELSE 0 END
+) / COUNT(a.att_id), 2
+) < 75
+ORDER BY attendance_pct;
+GO
+
+-- Query 8
+SELECT
+m.student_id,
+s.name,
+m.exam_id,
+m.marks_obtained
+FROM Marks m
+JOIN Student s
+ON m.student_id = s.student_id
+WHERE m.marks_obtained > (
+SELECT AVG(marks_obtained)
+FROM Marks
+WHERE exam_id = m.exam_id
+)
+ORDER BY m.exam_id, m.marks_obtained DESC;
+GO
